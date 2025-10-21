@@ -1,9 +1,9 @@
-from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Optional, Annotated
+from pydantic import BaseModel, Field
+from typing import List, Optional
 from datetime import datetime
 from bson import ObjectId
 
-# Simplificamos para compatibilidad con Pydantic v2
+# Simple ObjectId validation for Pydantic v1
 def validate_object_id(v):
     if isinstance(v, ObjectId):
         return v
@@ -13,15 +13,11 @@ def validate_object_id(v):
         return ObjectId()
     raise ValueError("Invalid ObjectId")
 
-# Tipo simple para ObjectId
-ObjectIdType = Annotated[ObjectId, Field()]
-
 class User(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-        arbitrary_types_allowed=True,
-        json_encoders={ObjectId: str}
-    )
+    class Config:
+        allow_population_by_field_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
 
     id: Optional[ObjectId] = Field(default_factory=ObjectId, alias="_id")
     email: str
@@ -42,11 +38,10 @@ class UserResponse(BaseModel):
     created_at: datetime
 
 class Nota(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-        arbitrary_types_allowed=True,
-        json_encoders={ObjectId: str}
-    )
+    class Config:
+        allow_population_by_field_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
 
     id: Optional[ObjectId] = Field(default_factory=ObjectId, alias="_id")
     titulo: str
@@ -72,11 +67,10 @@ class NotaUpdate(BaseModel):
     etiquetas: Optional[List[str]] = None
 
 class Cajita(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-        arbitrary_types_allowed=True,
-        json_encoders={ObjectId: str}
-    )
+    class Config:
+        allow_population_by_field_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
 
     id: Optional[ObjectId] = Field(default_factory=ObjectId, alias="_id")
     nombre: str
@@ -96,11 +90,10 @@ class CajitaUpdate(BaseModel):
     descripcion: Optional[str] = None
 
 class Caja(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-        arbitrary_types_allowed=True,
-        json_encoders={ObjectId: str}
-    )
+    class Config:
+        allow_population_by_field_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
 
     id: Optional[ObjectId] = Field(default_factory=ObjectId, alias="_id")
     nombre: str
@@ -123,11 +116,10 @@ class CajaUpdate(BaseModel):
     color: Optional[str] = None
 
 class Armario(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-        arbitrary_types_allowed=True,
-        json_encoders={ObjectId: str}
-    )
+    class Config:
+        allow_population_by_field_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
 
     id: Optional[ObjectId] = Field(default_factory=ObjectId, alias="_id")
     nombre: str
