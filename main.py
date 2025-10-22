@@ -11,7 +11,9 @@ load_dotenv()
 app = FastAPI(
     title="Mnemosyne API",
     description="API para gestión de notas organizadas jerárquicamente",
-    version="1.0.0"
+    version="1.0.0",
+    docs_url=None,  # Disable /docs
+    redoc_url=None  # Disable /redoc
 )
 
 # Configurar CORS
