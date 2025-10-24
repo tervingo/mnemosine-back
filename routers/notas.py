@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
+from pydantic import BaseModel
 from models.models import Nota, NotaCreate, NotaUpdate, NotaResponse, User
 from auth.auth import get_current_user
 from database.connection import (
@@ -10,6 +11,10 @@ from bson import ObjectId
 from datetime import datetime
 
 router = APIRouter()
+
+class MoveNotaRequest(BaseModel):
+    new_parent_id: str
+    new_parent_type: str
 
 @router.get("/search", response_model=List[NotaResponse])
 async def search_notas(
@@ -258,6 +263,57 @@ async def delete_nota(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="ID de nota inválido"
+        )
+
+@router.put("/{nota_id}/move")
+async def move_nota(
+    nota_id: str,
+    move_request: MoveNotaRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Mover nota a una nueva ubicación"""
+    try:
+        if move_request.new_parent_type not in ["caja", "cajita"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Tipo de contenedor inválido. Debe ser 'caja' o 'cajita'"
+            )
+
+        collection = await get_notas_collection()
+
+        # Verificar que la nota existe y pertenece al usuario
+        nota = await collection.find_one({
+            "_id": ObjectId(nota_id),
+            "owner_id": current_user.id
+        })
+
+        if not nota:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Nota no encontrada"
+            )
+
+        # Verificar permisos sobre la nueva ubicación
+        await verify_container_permissions(move_request.new_parent_id, move_request.new_parent_type, current_user)
+
+        # Actualizar la ubicación de la nota
+        await collection.update_one(
+            {"_id": ObjectId(nota_id)},
+            {"$set": {
+                "parent_id": ObjectId(move_request.new_parent_id),
+                "parent_type": move_request.new_parent_type,
+                "updated_at": datetime.utcnow()
+            }}
+        )
+
+        return {"message": "Nota movida correctamente"}
+
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Error al mover la nota"
         )
 
 async def verify_container_permissions(container_id: str, container_type: str, user: User):
