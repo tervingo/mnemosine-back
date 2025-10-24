@@ -214,7 +214,7 @@ async def delete_cajita(
     cajita_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Eliminar cajita y todas sus notas"""
+    """Eliminar cajita solo si está vacía"""
     try:
         collection = await get_cajitas_collection()
 
@@ -248,12 +248,18 @@ async def delete_cajita(
                 detail="No tienes permisos para eliminar esta cajita"
             )
 
-        # Eliminar todas las notas de la cajita
+        # Verificar que la cajita está vacía (no tiene notas)
         notas_collection = await get_notas_collection()
-        await notas_collection.delete_many({
+        notas_count = await notas_collection.count_documents({
             "parent_id": ObjectId(cajita_id),
             "parent_type": "cajita"
         })
+
+        if notas_count > 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se puede eliminar una cajita que contiene notas. Elimina primero todas las notas."
+            )
 
         # Eliminar la cajita
         await collection.delete_one({"_id": ObjectId(cajita_id)})
@@ -261,6 +267,8 @@ async def delete_cajita(
         return {"message": "Cajita eliminada correctamente"}
 
     except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="ID de cajita inválido"

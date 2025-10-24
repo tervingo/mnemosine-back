@@ -229,7 +229,7 @@ async def delete_armario(
     armario_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Eliminar armario y todo su contenido"""
+    """Eliminar armario solo si está vacío"""
     try:
         collection = await get_armarios_collection()
 
@@ -245,8 +245,22 @@ async def delete_armario(
                 detail="Armario no encontrado"
             )
 
-        # Eliminar todo el contenido en cascada
-        await delete_armario_content(ObjectId(armario_id))
+        # No permitir eliminar el armario por defecto
+        if armario.get("is_default", False):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se puede eliminar el armario principal"
+            )
+
+        # Verificar que el armario está vacío (no tiene cajas)
+        cajas_collection = await get_cajas_collection()
+        cajas_count = await cajas_collection.count_documents({"armario_id": ObjectId(armario_id)})
+
+        if cajas_count > 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se puede eliminar un armario que contiene cajas. Elimina primero todas las cajas."
+            )
 
         # Eliminar el armario
         await collection.delete_one({"_id": ObjectId(armario_id)})
@@ -254,6 +268,8 @@ async def delete_armario(
         return {"message": "Armario eliminado correctamente"}
 
     except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="ID de armario inválido"

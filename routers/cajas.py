@@ -175,7 +175,7 @@ async def delete_caja(
     caja_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Eliminar caja y todo su contenido"""
+    """Eliminar caja solo si está vacía"""
     try:
         collection = await get_cajas_collection()
 
@@ -200,8 +200,23 @@ async def delete_caja(
                 detail="No tienes permisos para eliminar esta caja"
             )
 
-        # Eliminar todo el contenido de la caja
-        await delete_caja_content(ObjectId(caja_id))
+        # Verificar que la caja está vacía (no tiene notas ni cajitas)
+        from database.connection import get_cajitas_collection, get_notas_collection
+
+        cajitas_collection = await get_cajitas_collection()
+        cajitas_count = await cajitas_collection.count_documents({"caja_id": ObjectId(caja_id)})
+
+        notas_collection = await get_notas_collection()
+        notas_count = await notas_collection.count_documents({
+            "parent_id": ObjectId(caja_id),
+            "parent_type": "caja"
+        })
+
+        if cajitas_count > 0 or notas_count > 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se puede eliminar una caja que contiene cajitas o notas. Elimina primero todo su contenido."
+            )
 
         # Eliminar la caja
         await collection.delete_one({"_id": ObjectId(caja_id)})
@@ -209,6 +224,8 @@ async def delete_caja(
         return {"message": "Caja eliminada correctamente"}
 
     except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="ID de caja inválido"
