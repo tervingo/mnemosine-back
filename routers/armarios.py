@@ -275,6 +275,49 @@ async def delete_armario(
             detail="ID de armario inválido"
         )
 
+@router.put("/{armario_id}/set-default")
+async def set_default_armario(
+    armario_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Establecer un armario como predeterminado"""
+    try:
+        collection = await get_armarios_collection()
+
+        # Verificar que el armario existe y pertenece al usuario
+        armario = await collection.find_one({
+            "_id": ObjectId(armario_id),
+            "owner_id": current_user.id
+        })
+
+        if not armario:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Armario no encontrado"
+            )
+
+        # Quitar is_default de todos los armarios del usuario
+        await collection.update_many(
+            {"owner_id": current_user.id},
+            {"$set": {"is_default": False, "updated_at": datetime.utcnow()}}
+        )
+
+        # Establecer el armario seleccionado como predeterminado
+        await collection.update_one(
+            {"_id": ObjectId(armario_id)},
+            {"$set": {"is_default": True, "updated_at": datetime.utcnow()}}
+        )
+
+        return {"message": "Armario establecido como predeterminado"}
+
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="ID de armario inválido"
+        )
+
 async def delete_armario_content(armario_id: ObjectId):
     """Eliminar todo el contenido de un armario"""
     # Obtener todas las cajas del armario
