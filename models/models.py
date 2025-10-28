@@ -183,3 +183,36 @@ class ArmarioResponse(BaseModel):
     cajas: List[CajaResponse] = []
     created_at: datetime
     updated_at: datetime
+
+class Reminder(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+        arbitrary_types_allowed=True,
+        json_encoders={ObjectId: str}
+    )
+
+    id: Optional[ObjectId] = Field(default_factory=ObjectId, alias="_id")
+    user_id: ObjectId
+    event_id: str  # Google Calendar Event ID
+    event_title: str
+    event_start: datetime
+    reminder_time: datetime  # Calculated from event_start - minutes_before
+    minutes_before: int  # Minutes before event to send reminder
+    sent: bool = False
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class ReminderCreate(BaseModel):
+    event_id: str
+    event_title: str
+    event_start: datetime
+    minutes_before: int = 15  # Default 15 minutes
+
+class ReminderResponse(BaseModel):
+    id: str
+    event_id: str
+    event_title: str
+    event_start: datetime
+    reminder_time: datetime
+    minutes_before: int
+    sent: bool
+    created_at: datetime
