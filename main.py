@@ -4,9 +4,8 @@ from dotenv import load_dotenv
 import os
 
 from routers import armarios, cajas, cajitas, notas, auth, reminders
-from database.connection import connect_to_mongo, close_mongo_connection
+from database.connection import connect_to_mongo, close_mongo_connection, get_db_client
 from services.reminder_scheduler import initialize_scheduler, get_reminder_scheduler
-from database import get_db_client
 
 load_dotenv()
 

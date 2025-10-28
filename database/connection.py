@@ -14,6 +14,10 @@ db = Database()
 async def get_database():
     return db.database
 
+def get_db_client():
+    """Obtener el cliente de MongoDB de forma síncrona"""
+    return db.client
+
 async def connect_to_mongo():
     """Crear conexión a MongoDB Atlas"""
     mongodb_url = os.getenv("MONGODB_URL")

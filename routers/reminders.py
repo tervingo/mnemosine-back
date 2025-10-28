@@ -3,10 +3,9 @@ from typing import List
 from datetime import datetime, timedelta
 from bson import ObjectId
 
-from models.models import Reminder, ReminderCreate, ReminderResponse
-from database import get_database
+from models.models import Reminder, ReminderCreate, ReminderResponse, User
+from database.connection import get_database
 from routers.auth import get_current_user
-from models.models import User
 
 router = APIRouter(prefix="/reminders", tags=["reminders"])
 
