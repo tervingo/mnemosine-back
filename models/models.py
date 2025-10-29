@@ -3,16 +3,6 @@ from typing import List, Optional
 from datetime import datetime
 from bson import ObjectId
 
-# Simple ObjectId validation for Pydantic v2
-def validate_object_id(v):
-    if isinstance(v, ObjectId):
-        return v
-    if isinstance(v, str) and ObjectId.is_valid(v):
-        return ObjectId(v)
-    if v is None:
-        return ObjectId()
-    raise ValueError("Invalid ObjectId")
-
 class User(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,

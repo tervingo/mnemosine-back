@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Optional
-import jwt
-from jwt.exceptions import PyJWTError as JWTError
+from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -11,7 +10,7 @@ from bson import ObjectId
 import os
 
 # Configuración de encriptación
-pwd_context = CryptContext(schemes=["sha256_crypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
 
 SECRET_KEY = os.getenv("SECRET_KEY", "fallback_secret_key_for_development")
