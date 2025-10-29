@@ -75,10 +75,18 @@ async def check_reminders_endpoint():
 
         for reminder in reminders:
             try:
+                # Ensure event_start is a datetime object
+                event_start = reminder["event_start"]
+                if isinstance(event_start, str):
+                    from dateutil import parser
+                    event_start = parser.parse(event_start)
+
+                print(f"🔍 Processing reminder: {reminder['event_title']}, event_start type: {type(event_start)}, value: {event_start}")
+
                 # Send Telegram message
                 success = telegram_service.send_event_reminder(
                     event_title=reminder["event_title"],
-                    event_start=reminder["event_start"],
+                    event_start=event_start,
                     minutes_before=reminder["minutes_before"],
                     event_location=reminder.get("event_location")
                 )
@@ -98,6 +106,8 @@ async def check_reminders_endpoint():
             except Exception as e:
                 failed_count += 1
                 print(f"❌ Error sending reminder for event {reminder['event_title']}: {e}")
+                import traceback
+                print(f"Traceback: {traceback.format_exc()}")
 
         return {
             "status": "success",
