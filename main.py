@@ -49,7 +49,7 @@ async def root():
 async def health_check():
     return {"status": "healthy"}
 
-@app.post("/api/test/telegram")
+@app.get("/api/test/telegram")
 async def test_telegram():
     """
     Endpoint de prueba para verificar que Telegram funciona
