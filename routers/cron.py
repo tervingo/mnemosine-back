@@ -3,7 +3,7 @@ from datetime import datetime
 from database.connection import get_database
 from services.telegram_service import telegram_service
 
-router = APIRouter(prefix="/cron", tags=["cron"])
+router = APIRouter(tags=["cron"])
 
 @router.post("/check-reminders")
 async def check_reminders_cron(

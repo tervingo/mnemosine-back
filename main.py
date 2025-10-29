@@ -30,7 +30,7 @@ app.include_router(cajas.router, prefix="/api/cajas", tags=["cajas"])
 app.include_router(cajitas.router, prefix="/api/cajitas", tags=["cajitas"])
 app.include_router(notas.router, prefix="/api/notas", tags=["notas"])
 app.include_router(reminders.router, prefix="/api", tags=["reminders"])
-app.include_router(cron.router, prefix="/api", tags=["cron"])
+app.include_router(cron.router, prefix="/api/cron", tags=["cron"])
 
 # Eventos de inicio y cierre
 @app.on_event("startup")
