@@ -52,7 +52,7 @@ async def health_check():
 @app.post("/api/cron/check-reminders")
 async def check_reminders_endpoint():
     """
-    Endpoint temporal para verificar que la ruta funciona
+    Endpoint para cron job - verifica y envía recordatorios pendientes
     """
     from datetime import datetime
     from database.connection import get_database
