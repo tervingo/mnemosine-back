@@ -49,6 +49,28 @@ async def root():
 async def health_check():
     return {"status": "healthy"}
 
+@app.post("/api/test/telegram")
+async def test_telegram():
+    """
+    Endpoint de prueba para verificar que Telegram funciona
+    """
+    from services.telegram_service import telegram_service
+    from datetime import datetime
+
+    success = telegram_service.send_event_reminder(
+        event_title="Test de Telegram",
+        event_start=datetime.now(),
+        minutes_before=0,
+        event_location="Test Location"
+    )
+
+    return {
+        "success": success,
+        "bot_token_configured": telegram_service.bot_token is not None,
+        "chat_id_configured": telegram_service.chat_id is not None,
+        "chat_id": telegram_service.chat_id
+    }
+
 @app.post("/api/cron/check-reminders")
 async def check_reminders_endpoint():
     """
