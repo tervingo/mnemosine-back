@@ -197,6 +197,11 @@ class ReminderCreate(BaseModel):
     event_start: datetime
     minutes_before: int = 15  # Default 15 minutes
 
+class ReminderUpdate(BaseModel):
+    event_title: str
+    event_start: datetime
+    minutes_before: int
+
 class ReminderResponse(BaseModel):
     id: str
     event_id: str

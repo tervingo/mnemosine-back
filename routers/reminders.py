@@ -3,7 +3,7 @@ from typing import List
 from datetime import datetime, timedelta
 from bson import ObjectId
 
-from models.models import Reminder, ReminderCreate, ReminderResponse, User
+from models.models import Reminder, ReminderCreate, ReminderUpdate, ReminderResponse, User
 from database.connection import get_database
 from routers.auth import get_current_user
 
@@ -154,7 +154,7 @@ async def delete_reminder_by_event(
 @router.put("/event/{event_id}", response_model=ReminderResponse)
 async def update_reminder(
     event_id: str,
-    reminder_data: ReminderCreate,
+    reminder_data: ReminderUpdate,
     current_user: User = Depends(get_current_user),
     db=Depends(get_database)
 ):
