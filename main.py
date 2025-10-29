@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
 
-from routers import armarios, cajas, cajitas, notas, auth, reminders, cron
+from routers import armarios, cajas, cajitas, notas, auth, reminders  # , cron
 from database.connection import connect_to_mongo, close_mongo_connection
 
 load_dotenv()
@@ -30,7 +30,7 @@ app.include_router(cajas.router, prefix="/api/cajas", tags=["cajas"])
 app.include_router(cajitas.router, prefix="/api/cajitas", tags=["cajitas"])
 app.include_router(notas.router, prefix="/api/notas", tags=["notas"])
 app.include_router(reminders.router, prefix="/api", tags=["reminders"])
-app.include_router(cron.router, prefix="/api/cron", tags=["cron"])
+# app.include_router(cron.router, prefix="/api/cron", tags=["cron"])  # Endpoint movido directamente a main.py
 
 # Eventos de inicio y cierre
 @app.on_event("startup")
@@ -48,6 +48,72 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+@app.post("/api/cron/check-reminders")
+async def check_reminders_endpoint():
+    """
+    Endpoint temporal para verificar que la ruta funciona
+    """
+    from datetime import datetime
+    from database.connection import get_database
+    from services.telegram_service import telegram_service
+
+    try:
+        db = await get_database()
+        current_time = datetime.utcnow()
+
+        # Find reminders that should be sent
+        reminders_cursor = db["reminders"].find({
+            "sent": False,
+            "reminder_time": {"$lte": current_time}
+        })
+
+        reminders = await reminders_cursor.to_list(length=None)
+
+        sent_count = 0
+        failed_count = 0
+
+        for reminder in reminders:
+            try:
+                # Send Telegram message
+                success = telegram_service.send_event_reminder(
+                    event_title=reminder["event_title"],
+                    event_start=reminder["event_start"],
+                    minutes_before=reminder["minutes_before"],
+                    event_location=reminder.get("event_location")
+                )
+
+                if success:
+                    # Mark as sent
+                    await db["reminders"].update_one(
+                        {"_id": reminder["_id"]},
+                        {"$set": {"sent": True}}
+                    )
+                    sent_count += 1
+                    print(f"✅ Reminder sent for event: {reminder['event_title']}")
+                else:
+                    failed_count += 1
+                    print(f"❌ Failed to send reminder for event: {reminder['event_title']}")
+
+            except Exception as e:
+                failed_count += 1
+                print(f"❌ Error sending reminder for event {reminder['event_title']}: {e}")
+
+        return {
+            "status": "success",
+            "checked_at": current_time.isoformat(),
+            "reminders_sent": sent_count,
+            "reminders_failed": failed_count,
+            "total_checked": len(reminders)
+        }
+
+    except Exception as e:
+        print(f"❌ Error in cron job: {e}")
+        return {
+            "status": "error",
+            "error": str(e),
+            "checked_at": datetime.utcnow().isoformat()
+        }
 
 if __name__ == "__main__":
     import uvicorn
