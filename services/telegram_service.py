@@ -101,5 +101,54 @@ class TelegramService:
             print(f"Traceback: {traceback.format_exc()}")
             return False
 
+    def send_internal_reminder(
+        self,
+        title: str,
+        reminder_datetime: datetime,
+        minutes_before: int,
+        description: Optional[str] = None
+    ) -> bool:
+        """
+        Envía un recordatorio interno formateado
+        """
+        try:
+            print(f"🔔 Preparing internal reminder for: {title}")
+            print(f"   reminder_datetime type: {type(reminder_datetime)}, value: {reminder_datetime}")
+            print(f"   minutes_before: {minutes_before}")
+
+            # Format the datetime
+            formatted_time = reminder_datetime.strftime("%d/%m/%Y %H:%M")
+            print(f"   formatted_time: {formatted_time}")
+
+            # Build the message
+            message = f"⏰ <b>Recordatorio</b>\n\n"
+            message += f"📋 <b>{title}</b>\n"
+            message += f"🕐 {formatted_time}"
+
+            if description:
+                message += f"\n📝 {description}"
+
+            if minutes_before > 0:
+                if minutes_before >= 60:
+                    hours = minutes_before // 60
+                    remaining_minutes = minutes_before % 60
+                    if remaining_minutes > 0:
+                        message += f"\n\n⏳ Tiempo restante: {hours}h {remaining_minutes}min"
+                    else:
+                        message += f"\n\n⏳ Tiempo restante: {hours}h"
+                else:
+                    message += f"\n\n⏳ Tiempo restante: {minutes_before} minutos"
+            else:
+                message += "\n\n⏳ ¡Es ahora!"
+
+            print(f"📝 Full message prepared, length: {len(message)} chars")
+            return self.send_message(message)
+
+        except Exception as e:
+            print(f"❌ Error in send_internal_reminder: {e}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
+            return False
+
 # Singleton instance
 telegram_service = TelegramService()

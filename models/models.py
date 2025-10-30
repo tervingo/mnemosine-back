@@ -174,7 +174,8 @@ class ArmarioResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-class Reminder(BaseModel):
+# Event Reminder (vinculado a eventos de Google Calendar)
+class EventReminder(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
         arbitrary_types_allowed=True,
@@ -191,18 +192,18 @@ class Reminder(BaseModel):
     sent: bool = False
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
-class ReminderCreate(BaseModel):
+class EventReminderCreate(BaseModel):
     event_id: str
     event_title: str
     event_start: datetime
     minutes_before: int = 15  # Default 15 minutes
 
-class ReminderUpdate(BaseModel):
+class EventReminderUpdate(BaseModel):
     event_title: str
     event_start: datetime
     minutes_before: int
 
-class ReminderResponse(BaseModel):
+class EventReminderResponse(BaseModel):
     id: str
     event_id: str
     event_title: str
@@ -211,3 +212,51 @@ class ReminderResponse(BaseModel):
     minutes_before: int
     sent: bool
     created_at: datetime
+
+# Backward compatibility aliases
+Reminder = EventReminder
+ReminderCreate = EventReminderCreate
+ReminderUpdate = EventReminderUpdate
+ReminderResponse = EventReminderResponse
+
+# Internal Reminder (recordatorios internos de la app)
+class InternalReminder(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+        arbitrary_types_allowed=True,
+        json_encoders={ObjectId: str}
+    )
+
+    id: Optional[ObjectId] = Field(default_factory=ObjectId, alias="_id")
+    user_id: ObjectId
+    title: str
+    reminder_datetime: datetime  # Fecha y hora del recordatorio
+    reminder_time: datetime  # Hora a la que se enviará el aviso (reminder_datetime - minutes_before)
+    minutes_before: int  # Minutos de anticipación para el aviso
+    description: Optional[str] = None
+    sent: bool = False
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class InternalReminderCreate(BaseModel):
+    title: str
+    reminder_datetime: datetime
+    minutes_before: int = 0  # Default: a la hora exacta
+    description: Optional[str] = None
+
+class InternalReminderUpdate(BaseModel):
+    title: str
+    reminder_datetime: datetime
+    minutes_before: int
+    description: Optional[str] = None
+
+class InternalReminderResponse(BaseModel):
+    id: str
+    title: str
+    reminder_datetime: datetime
+    reminder_time: datetime
+    minutes_before: int
+    description: Optional[str]
+    sent: bool
+    created_at: datetime
+    updated_at: datetime
