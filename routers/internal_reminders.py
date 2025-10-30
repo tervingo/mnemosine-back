@@ -46,6 +46,7 @@ async def create_internal_reminder(
         minutes_before=created_reminder["minutes_before"],
         description=created_reminder.get("description"),
         sent=created_reminder["sent"],
+        completed=created_reminder.get("completed", False),
         created_at=created_reminder["created_at"],
         updated_at=created_reminder["updated_at"]
     )
@@ -56,11 +57,10 @@ async def get_internal_reminders(
     db=Depends(get_database)
 ):
     """
-    Obtener todos los recordatorios internos del usuario actual que no han sido enviados
+    Obtener todos los recordatorios internos del usuario actual
     """
     reminders_cursor = db["internal_reminders"].find({
-        "user_id": current_user.id,
-        "sent": False
+        "user_id": current_user.id
     }).sort("reminder_datetime", 1)  # Sort by date ascending
 
     reminders = await reminders_cursor.to_list(length=None)
@@ -74,6 +74,7 @@ async def get_internal_reminders(
             minutes_before=reminder["minutes_before"],
             description=reminder.get("description"),
             sent=reminder["sent"],
+            completed=reminder.get("completed", False),
             created_at=reminder["created_at"],
             updated_at=reminder["updated_at"]
         )
@@ -114,6 +115,7 @@ async def get_internal_reminder(
         minutes_before=reminder["minutes_before"],
         description=reminder.get("description"),
         sent=reminder["sent"],
+        completed=reminder.get("completed", False),
         created_at=reminder["created_at"],
         updated_at=reminder["updated_at"]
     )
@@ -137,20 +139,25 @@ async def update_internal_reminder(
     # Calculate new reminder time
     reminder_time = reminder_data.reminder_datetime - timedelta(minutes=reminder_data.minutes_before)
 
+    # Build update dict
+    update_dict = {
+        "title": reminder_data.title,
+        "reminder_datetime": reminder_data.reminder_datetime,
+        "reminder_time": reminder_time,
+        "minutes_before": reminder_data.minutes_before,
+        "description": reminder_data.description,
+        "sent": False,  # Reset sent status when updating
+        "updated_at": datetime.utcnow()
+    }
+
+    # Only update completed if provided
+    if reminder_data.completed is not None:
+        update_dict["completed"] = reminder_data.completed
+
     # Update reminder
     result = await db["internal_reminders"].update_one(
         {"_id": ObjectId(reminder_id), "user_id": current_user.id},
-        {
-            "$set": {
-                "title": reminder_data.title,
-                "reminder_datetime": reminder_data.reminder_datetime,
-                "reminder_time": reminder_time,
-                "minutes_before": reminder_data.minutes_before,
-                "description": reminder_data.description,
-                "sent": False,  # Reset sent status when updating
-                "updated_at": datetime.utcnow()
-            }
-        }
+        {"$set": update_dict}
     )
 
     if result.matched_count == 0:
@@ -173,6 +180,67 @@ async def update_internal_reminder(
         minutes_before=updated_reminder["minutes_before"],
         description=updated_reminder.get("description"),
         sent=updated_reminder["sent"],
+        completed=updated_reminder.get("completed", False),
+        created_at=updated_reminder["created_at"],
+        updated_at=updated_reminder["updated_at"]
+    )
+
+@router.patch("/{reminder_id}/toggle-completed", response_model=InternalReminderResponse)
+async def toggle_reminder_completed(
+    reminder_id: str,
+    current_user: User = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    """
+    Cambiar el estado de completado de un recordatorio interno
+    """
+    if not ObjectId.is_valid(reminder_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="ID de recordatorio inválido"
+        )
+
+    # Get current reminder
+    reminder = await db["internal_reminders"].find_one({
+        "_id": ObjectId(reminder_id),
+        "user_id": current_user.id
+    })
+
+    if not reminder:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Recordatorio no encontrado"
+        )
+
+    # Toggle completed status
+    new_completed = not reminder.get("completed", False)
+
+    # Update reminder
+    await db["internal_reminders"].update_one(
+        {"_id": ObjectId(reminder_id), "user_id": current_user.id},
+        {
+            "$set": {
+                "completed": new_completed,
+                "updated_at": datetime.utcnow()
+            }
+        }
+    )
+
+    # Get updated reminder
+    updated_reminder = await db["internal_reminders"].find_one({
+        "_id": ObjectId(reminder_id),
+        "user_id": current_user.id
+    })
+
+    return InternalReminderResponse(
+        id=str(updated_reminder["_id"]),
+        title=updated_reminder["title"],
+        reminder_datetime=updated_reminder["reminder_datetime"],
+        reminder_time=updated_reminder["reminder_time"],
+        minutes_before=updated_reminder["minutes_before"],
+        description=updated_reminder.get("description"),
+        sent=updated_reminder["sent"],
+        completed=updated_reminder.get("completed", False),
         created_at=updated_reminder["created_at"],
         updated_at=updated_reminder["updated_at"]
     )

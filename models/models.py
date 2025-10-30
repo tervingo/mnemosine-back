@@ -235,6 +235,7 @@ class InternalReminder(BaseModel):
     minutes_before: int  # Minutos de anticipación para el aviso
     description: Optional[str] = None
     sent: bool = False
+    completed: bool = False  # Indica si el recordatorio ha sido marcado como completado
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -249,6 +250,7 @@ class InternalReminderUpdate(BaseModel):
     reminder_datetime: datetime
     minutes_before: int
     description: Optional[str] = None
+    completed: Optional[bool] = None
 
 class InternalReminderResponse(BaseModel):
     id: str
@@ -258,5 +260,6 @@ class InternalReminderResponse(BaseModel):
     minutes_before: int
     description: Optional[str]
     sent: bool
+    completed: bool
     created_at: datetime
     updated_at: datetime
