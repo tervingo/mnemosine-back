@@ -141,11 +141,62 @@ async def check_reminders_endpoint():
                 )
 
                 if success:
-                    # Mark as sent
-                    await db["internal_reminders"].update_one(
-                        {"_id": reminder["_id"]},
-                        {"$set": {"sent": True}}
-                    )
+                    # Check if this is a recurring reminder
+                    if reminder.get("is_recurring", False) and reminder.get("recurrence_type"):
+                        # Calculate next occurrence
+                        from dateutil.relativedelta import relativedelta
+
+                        current_datetime = reminder["reminder_datetime"]
+                        recurrence_type = reminder["recurrence_type"]
+                        recurrence_end_date = reminder.get("recurrence_end_date")
+
+                        # Calculate next datetime based on recurrence type
+                        if recurrence_type == "daily":
+                            next_datetime = current_datetime + relativedelta(days=1)
+                        elif recurrence_type == "weekly":
+                            next_datetime = current_datetime + relativedelta(weeks=1)
+                        elif recurrence_type == "monthly":
+                            next_datetime = current_datetime + relativedelta(months=1)
+                        elif recurrence_type == "yearly":
+                            next_datetime = current_datetime + relativedelta(years=1)
+                        else:
+                            next_datetime = None
+
+                        # Only create next occurrence if it's before the end date (if specified)
+                        should_create_next = next_datetime is not None
+                        if recurrence_end_date and next_datetime:
+                            should_create_next = next_datetime <= recurrence_end_date
+
+                        if should_create_next:
+                            # Calculate next reminder time
+                            from datetime import timedelta
+                            next_reminder_time = next_datetime - timedelta(minutes=reminder["minutes_before"])
+
+                            # Update current reminder to next occurrence
+                            await db["internal_reminders"].update_one(
+                                {"_id": reminder["_id"]},
+                                {"$set": {
+                                    "reminder_datetime": next_datetime,
+                                    "reminder_time": next_reminder_time,
+                                    "sent": False,
+                                    "completed": False
+                                }}
+                            )
+                            print(f"🔄 Recurring reminder updated to next occurrence: {next_datetime}")
+                        else:
+                            # Recurrence ended, mark as sent and completed
+                            await db["internal_reminders"].update_one(
+                                {"_id": reminder["_id"]},
+                                {"$set": {"sent": True, "completed": True}}
+                            )
+                            print(f"🏁 Recurring reminder ended: {reminder['title']}")
+                    else:
+                        # Non-recurring reminder, just mark as sent
+                        await db["internal_reminders"].update_one(
+                            {"_id": reminder["_id"]},
+                            {"$set": {"sent": True}}
+                        )
+
                     total_sent += 1
                     print(f"✅ Internal reminder sent: {reminder['title']}")
                 else:

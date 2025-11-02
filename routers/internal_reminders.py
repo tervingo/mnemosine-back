@@ -29,7 +29,10 @@ async def create_internal_reminder(
         reminder_time=reminder_time,
         minutes_before=reminder_data.minutes_before,
         description=reminder_data.description,
-        sent=False
+        sent=False,
+        is_recurring=reminder_data.is_recurring,
+        recurrence_type=reminder_data.recurrence_type,
+        recurrence_end_date=reminder_data.recurrence_end_date
     )
 
     # Insert into database
@@ -47,6 +50,9 @@ async def create_internal_reminder(
         description=created_reminder.get("description"),
         sent=created_reminder["sent"],
         completed=created_reminder.get("completed", False),
+        is_recurring=created_reminder.get("is_recurring", False),
+        recurrence_type=created_reminder.get("recurrence_type"),
+        recurrence_end_date=created_reminder.get("recurrence_end_date"),
         created_at=created_reminder["created_at"],
         updated_at=created_reminder["updated_at"]
     )
@@ -75,6 +81,9 @@ async def get_internal_reminders(
             description=reminder.get("description"),
             sent=reminder["sent"],
             completed=reminder.get("completed", False),
+            is_recurring=reminder.get("is_recurring", False),
+            recurrence_type=reminder.get("recurrence_type"),
+            recurrence_end_date=reminder.get("recurrence_end_date"),
             created_at=reminder["created_at"],
             updated_at=reminder["updated_at"]
         )
@@ -116,6 +125,9 @@ async def get_internal_reminder(
         description=reminder.get("description"),
         sent=reminder["sent"],
         completed=reminder.get("completed", False),
+        is_recurring=reminder.get("is_recurring", False),
+        recurrence_type=reminder.get("recurrence_type"),
+        recurrence_end_date=reminder.get("recurrence_end_date"),
         created_at=reminder["created_at"],
         updated_at=reminder["updated_at"]
     )
@@ -153,6 +165,14 @@ async def update_internal_reminder(
     # Only update completed if provided
     if reminder_data.completed is not None:
         update_dict["completed"] = reminder_data.completed
+
+    # Only update recurrence fields if provided
+    if reminder_data.is_recurring is not None:
+        update_dict["is_recurring"] = reminder_data.is_recurring
+    if reminder_data.recurrence_type is not None:
+        update_dict["recurrence_type"] = reminder_data.recurrence_type
+    if reminder_data.recurrence_end_date is not None:
+        update_dict["recurrence_end_date"] = reminder_data.recurrence_end_date
 
     # Update reminder
     result = await db["internal_reminders"].update_one(

@@ -236,6 +236,10 @@ class InternalReminder(BaseModel):
     description: Optional[str] = None
     sent: bool = False
     completed: bool = False  # Indica si el recordatorio ha sido marcado como completado
+    # Campos de recurrencia
+    is_recurring: bool = False  # Indica si es un recordatorio recurrente
+    recurrence_type: Optional[str] = None  # 'daily', 'weekly', 'monthly', 'yearly'
+    recurrence_end_date: Optional[datetime] = None  # Fecha de finalización de la recurrencia
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -244,6 +248,9 @@ class InternalReminderCreate(BaseModel):
     reminder_datetime: datetime
     minutes_before: int = 0  # Default: a la hora exacta
     description: Optional[str] = None
+    is_recurring: bool = False
+    recurrence_type: Optional[str] = None  # 'daily', 'weekly', 'monthly', 'yearly'
+    recurrence_end_date: Optional[datetime] = None
 
 class InternalReminderUpdate(BaseModel):
     title: str
@@ -251,6 +258,9 @@ class InternalReminderUpdate(BaseModel):
     minutes_before: int
     description: Optional[str] = None
     completed: Optional[bool] = None
+    is_recurring: Optional[bool] = None
+    recurrence_type: Optional[str] = None
+    recurrence_end_date: Optional[datetime] = None
 
 class InternalReminderResponse(BaseModel):
     id: str
@@ -261,5 +271,8 @@ class InternalReminderResponse(BaseModel):
     description: Optional[str]
     sent: bool
     completed: bool
+    is_recurring: bool
+    recurrence_type: Optional[str]
+    recurrence_end_date: Optional[datetime]
     created_at: datetime
     updated_at: datetime
