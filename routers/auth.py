@@ -5,9 +5,12 @@ from models.models import User, UserCreate, UserResponse
 from auth.auth import (
     authenticate_user,
     create_access_token,
+    create_refresh_token,
+    verify_refresh_token,
     get_password_hash,
     get_user_by_email,
     get_user_by_username,
+    get_user_by_id,
     get_current_user,
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
@@ -68,13 +71,25 @@ async def login_user(form_data: OAuth2PasswordRequestForm = Depends()):
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    # Crear access token (30 minutos)
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": str(user.id)}, expires_delta=access_token_expires
     )
 
+    # Crear refresh token (30 días)
+    refresh_token = create_refresh_token(data={"sub": str(user.id)})
+
+    # Guardar refresh token en la base de datos
+    collection = await get_users_collection()
+    await collection.update_one(
+        {"_id": user.id},
+        {"$set": {"refresh_token": refresh_token, "updated_at": datetime.utcnow()}}
+    )
+
     return {
         "access_token": access_token,
+        "refresh_token": refresh_token,
         "token_type": "bearer",
         "user": UserResponse(
             id=str(user.id),
@@ -82,6 +97,38 @@ async def login_user(form_data: OAuth2PasswordRequestForm = Depends()):
             username=user.username,
             created_at=user.created_at
         )
+    }
+
+@router.post("/refresh")
+async def refresh_access_token(refresh_token: str):
+    """Renovar access token usando refresh token"""
+    # Verificar el refresh token
+    user_id = verify_refresh_token(refresh_token)
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token inválido o expirado",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Verificar que el refresh token coincida con el almacenado en BD
+    user = await get_user_by_id(user_id)
+    if not user or user.refresh_token != refresh_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token inválido",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Crear nuevo access token
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": str(user.id)}, expires_delta=access_token_expires
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer"
     }
 
 @router.get("/me", response_model=UserResponse)

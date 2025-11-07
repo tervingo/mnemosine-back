@@ -16,6 +16,7 @@ security = HTTPBearer()
 SECRET_KEY = os.getenv("SECRET_KEY", "fallback_secret_key_for_development")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "30"))
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verificar contraseña"""
@@ -26,16 +27,38 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    """Crear token JWT"""
+    """Crear token JWT de acceso"""
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 
-    to_encode.update({"exp": expire})
+    to_encode.update({"exp": expire, "type": "access"})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+def create_refresh_token(data: dict) -> str:
+    """Crear token JWT de refresco (larga duración)"""
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    to_encode.update({"exp": expire, "type": "refresh"})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+def verify_refresh_token(token: str) -> Optional[str]:
+    """Verificar refresh token y devolver el user_id"""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        token_type: str = payload.get("type")
+        user_id: str = payload.get("sub")
+
+        if token_type != "refresh" or user_id is None:
+            return None
+
+        return user_id
+    except JWTError:
+        return None
 
 async def get_user_by_email(email: str) -> Optional[User]:
     """Obtener usuario por email"""
