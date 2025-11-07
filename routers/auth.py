@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
+from pydantic import BaseModel
 from models.models import User, UserCreate, UserResponse
 from auth.auth import (
     authenticate_user,
@@ -18,6 +19,9 @@ from database.connection import get_users_collection
 from datetime import datetime
 
 router = APIRouter()
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
 
 @router.post("/register", response_model=UserResponse)
 async def register_user(user: UserCreate):
@@ -100,10 +104,10 @@ async def login_user(form_data: OAuth2PasswordRequestForm = Depends()):
     }
 
 @router.post("/refresh")
-async def refresh_access_token(refresh_token: str):
+async def refresh_access_token(request: RefreshTokenRequest):
     """Renovar access token usando refresh token"""
     # Verificar el refresh token
-    user_id = verify_refresh_token(refresh_token)
+    user_id = verify_refresh_token(request.refresh_token)
     if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -113,7 +117,7 @@ async def refresh_access_token(refresh_token: str):
 
     # Verificar que el refresh token coincida con el almacenado en BD
     user = await get_user_by_id(user_id)
-    if not user or user.refresh_token != refresh_token:
+    if not user or user.refresh_token != request.refresh_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token inválido",
