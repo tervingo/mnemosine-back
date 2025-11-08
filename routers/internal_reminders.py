@@ -201,6 +201,9 @@ async def update_internal_reminder(
         description=updated_reminder.get("description"),
         sent=updated_reminder["sent"],
         completed=updated_reminder.get("completed", False),
+        is_recurring=updated_reminder.get("is_recurring", False),
+        recurrence_type=updated_reminder.get("recurrence_type"),
+        recurrence_end_date=updated_reminder.get("recurrence_end_date"),
         created_at=updated_reminder["created_at"],
         updated_at=updated_reminder["updated_at"]
     )
@@ -261,6 +264,9 @@ async def toggle_reminder_completed(
         description=updated_reminder.get("description"),
         sent=updated_reminder["sent"],
         completed=updated_reminder.get("completed", False),
+        is_recurring=updated_reminder.get("is_recurring", False),
+        recurrence_type=updated_reminder.get("recurrence_type"),
+        recurrence_end_date=updated_reminder.get("recurrence_end_date"),
         created_at=updated_reminder["created_at"],
         updated_at=updated_reminder["updated_at"]
     )
