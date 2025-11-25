@@ -29,6 +29,16 @@ class UserResponse(BaseModel):
     username: str
     created_at: datetime
 
+class Attachment(BaseModel):
+    """Modelo para archivos adjuntos en notas"""
+    id: str = Field(default_factory=lambda: str(ObjectId()))
+    filename: str
+    file_type: str  # 'image', 'video', 'document', 'link', 'youtube'
+    url: str
+    cloudinary_id: Optional[str] = None  # ID en Cloudinary para poder eliminarlo
+    size: Optional[int] = None  # tamaño en bytes
+    uploaded_at: datetime = Field(default_factory=datetime.utcnow)
+
 class Nota(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -40,7 +50,7 @@ class Nota(BaseModel):
     titulo: str
     contenido: str  # Markdown
     etiquetas: List[str] = []
-    archivos_adjuntos: List[str] = []  # URLs de archivos
+    attachments: List[dict] = []  # Lista de archivos adjuntos
     owner_id: ObjectId
     parent_id: Optional[ObjectId] = None  # ID de la caja o cajita padre
     parent_type: str  # "caja" o "cajita"
@@ -140,7 +150,7 @@ class NotaResponse(BaseModel):
     titulo: str
     contenido: str
     etiquetas: List[str]
-    archivos_adjuntos: List[str]
+    attachments: List[dict]
     parent_id: Optional[str]
     parent_type: str
     created_at: datetime
