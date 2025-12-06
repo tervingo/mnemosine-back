@@ -62,17 +62,33 @@ async def check_reminders_endpoint():
 
     try:
         db = await get_database()
+        # Get current time in UTC (for comparing with stored times that represent local time as UTC)
+        # Since we store local time as UTC format, we need to compare with local time in UTC format
+        from datetime import timezone, timedelta
+
+        # Get Spain timezone offset (UTC+1 or UTC+2 depending on DST)
+        # For simplicity, we'll use UTC directly since times are stored as "local time in UTC format"
         current_time = datetime.utcnow()
+
+        # Since stored times represent local time (not actual UTC), we need to adjust comparison
+        # If it's 15:00 local time (UTC+1), it's stored as 15:00Z
+        # Current UTC time might be 14:00Z, but we need to compare with 15:00Z
+        # So we add the timezone offset to current_time
+        spain_offset = timedelta(hours=1)  # UTC+1 (adjust to 2 during DST if needed)
+        current_time_local_as_utc = current_time + spain_offset
 
         total_sent = 0
         total_failed = 0
         event_reminders_checked = 0
         internal_reminders_checked = 0
 
+        print(f"⏰ Current UTC time: {current_time}")
+        print(f"⏰ Current local time (as UTC): {current_time_local_as_utc}")
+
         # ===== PROCESS EVENT REMINDERS (Google Calendar) =====
         event_reminders_cursor = db["reminders"].find({
             "sent": False,
-            "reminder_time": {"$lte": current_time}
+            "reminder_time": {"$lte": current_time}  # Keep UTC for calendar events
         })
 
         event_reminders = await event_reminders_cursor.to_list(length=None)
@@ -115,9 +131,10 @@ async def check_reminders_endpoint():
                 print(f"Traceback: {traceback.format_exc()}")
 
         # ===== PROCESS INTERNAL REMINDERS =====
+        # For internal reminders, use the adjusted local time since they're stored as "local time in UTC format"
         internal_reminders_cursor = db["internal_reminders"].find({
             "sent": False,
-            "reminder_time": {"$lte": current_time}
+            "reminder_time": {"$lte": current_time_local_as_utc}
         })
 
         internal_reminders = await internal_reminders_cursor.to_list(length=None)
